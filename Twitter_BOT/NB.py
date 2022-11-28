@@ -6,7 +6,7 @@
 #  ie if u want to respnd to tweet 4 make sure last_seen.txt is tweet 3's id
 #  last_seen.txt = 1587982753596731392
 #
-#  -HZapperz
+#  
 ####################################################################################
 
 
