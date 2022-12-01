@@ -87,9 +87,9 @@ def reply():
     counter = 0
     for tweet in reversed(tweets):
         #only replies to tweets with the #ultimatebot in it
-        if '#ultimatebot' in tweet.full_text.lower():
+        if '#ais' in tweet.full_text.lower():
             
-            convo_id = analyze_tweet()
+            convo_id = analyze_tweet(tweet.id)
             #need to change this to the tweet of the conversation ID
             url = 'https://api.twitter.com/2/tweets/{}'.format(convo_id)
             
@@ -164,14 +164,13 @@ def getConvoTweet(convoUrl):
     return(y.get('text'))
 
 #use this function to get the tweet to run through the model
-def analyze_tweet():
-    url = create_url()
+def analyze_tweet(tweet_id):
+    url = 'https://api.twitter.com/2/tweets?ids={}&tweet.fields=conversation_id'.format(tweet_id)
     json_response = connect_to_endpoint(url)
     #extracts conversation_id from json file
     x = json.loads(json.dumps(json_response))
     y = x.get('data')
     return (y[0]['conversation_id'])
-
 
 
 #main
