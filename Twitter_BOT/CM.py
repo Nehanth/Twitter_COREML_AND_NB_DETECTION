@@ -1,20 +1,21 @@
 ###################################################################################
 #
 #  tweepy version 3.7.0
-#  bot.py and last_seen.txt must be in the same folder
-#  change last_seen.txt to the tweet id b4 the one you want to respond to
-#  ie if u want to respnd to tweet 4 make sure last_seen.txt is tweet 3's id
-#  last_seen.txt = 1587982753596731392
+#  
+#  last_seen.txt NEEDS to be changed the latest mention at every restart
 #
 ####################################################################################
 
-import tweepy
+
+
+
 import time
 import requests
 import json
+import tweepy
 import coremltools as ct
 
-# naive bayes model
+#naive bayes model
 import pandas as pd
 import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer
@@ -22,35 +23,37 @@ from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import classification_report
 
+
 model = ct.models.MLModel('NLPTWEET.mlmodel')
 
-# training naive bayed model
+
+#training naive bayed model
 df = pd.read_csv('CleanDataSet.csv', encoding="latin-1")
 df.isnull()
 df.isnull().sum().sum()
-df.dropna(inplace=True)
+df.dropna(inplace = True)
 df.describe()
 df = df.replace((np.inf, -np.inf, np.nan), 0).reset_index(drop=True)
-df.fillna(0, inplace=True)
-# print(df.info())
-# print(df.head())
+df.fillna(0,inplace=True)
+#print(df.info())
+#print(df.head())
 df['bot_or_human'] = df['bot_or_human'].map({'bot': 0, 'human': 1})
 X = df['text']
 y = df['bot_or_human']
 global cv
 cv = CountVectorizer()
-X = cv.fit_transform(X)  # Fit the Data
+X = cv.fit_transform(X) # Fit the Data
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
-# Naive Bayes Classifier\
+#Naive Bayes Classifier\
 global clf
 clf = MultinomialNB()
-clf.fit(X_train, y_train)
-clf.score(X_test, y_test)
+clf.fit(X_train,y_train)
+clf.score(X_test,y_test)
 y_pred = clf.predict(X_test)
-# print(classification_report(y_test, y_pred))
+#print(classification_report(y_test, y_pred))
 
 
-# api keys
+#api keys
 consumer_key = 'iRw9naKgZVPSni8fd66M4IRN6'
 consumer_secret = 'WbwU8Lsbz4NdemK3BO38JNwkgCwMryWu06luESedyWRXIbdUB9'
 key = '1582906439101607937-YR9LHJPmsRLFcWw9hRLddovjtPypmW'
@@ -83,56 +86,27 @@ def store_last_seen(FILE_NAME, last_seen_id):
 
 # reply function
 def reply():
-    counter = 0
     for tweet in reversed(tweets):
         # only replies to tweets with the #ultimatebot in it
-        if '#ais' in tweet.full_text.lower():
+        if '#aim' in tweet.full_text.lower():
 
-            convo_id = analyze_tweet(tweet.id)
-            # need to change this to the tweet of the conversation ID
+            convo_id = analyze_tweet(tweet.id) 
             url = 'https://api.twitter.com/2/tweets/{}'.format(convo_id)
 
             tweetNLP = getConvoTweet(url)
-            # print(tweetNLP)
-
-            #####
-
-            ##df_new = pd.DataFrame([tweetNLP], columns=['text'])
-            ##X = df_new['text']
-
-            # print('X is' + str(type(X)))
-
-            # put the tweet into panda data frame
-            ##A = cv.transform(X)
-            # print("A is " + str(type(A)))
-
-            ##prediction = clf.predict(A)
-            # print(B)
-            # [0] is bot [1] is human
-
-
-            print(f'The tweet predicted is: {tweetNLP} ')
+            print(tweetNLP)
             prediction = model.predict({'text': str(tweetNLP)})
             print(prediction)
-            result = str(prediction)
 
             if (str(prediction) == "{'label': '1'}"):
-                result = 'human'
+                api.update_status("@" + tweet.user.screen_name + " Our model predicts that this is a: human", tweet.id)
 
             if (str(prediction) == "{'label': '0'}"):
-               result = 'bot'
-            # send the reply (reply message, tweet id)
 
-            api.update_status("@" + tweet.user.screen_name + " This tweet was posted by a " + result, tweet.id)
-
-            # store the new tweet id
+                api.report_spam(screen_name = tweet.user.screen_name, perform_block = False)
+                api.update_status("@" + tweet.user.screen_name + " Our model predicts that this is a: bot and has been reported", tweet.id)
+        
             store_last_seen(FILE_NAME, tweet.id)
-
-
-def create_url():
-    id = read_last_seen(FILE_NAME)
-    url = 'https://api.twitter.com/2/tweets?ids={}&tweet.fields=conversation_id'.format(id)
-    return url
 
 
 def bearer_oauth(r):
@@ -179,11 +153,7 @@ def analyze_tweet(tweet_id):
 while True:
     # calls on all timeline mentions (when someone @'s the bot)
     tweets = api.mentions_timeline(read_last_seen(FILE_NAME), tweet_mode='extended')
-
-    # the reply function
-
-    # print(convo_id)
     reply()
 
     # wait timer b4 next reply
-    time.sleep(15)
+    time.sleep(7)

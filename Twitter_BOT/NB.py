@@ -1,20 +1,18 @@
 ###################################################################################
 #
 #  tweepy version 3.7.0
-#  bot.py and last_seen.txt must be in the same folder
-#  change last_seen.txt to the tweet id b4 the one you want to respond to
-#  ie if u want to respnd to tweet 4 make sure last_seen.txt is tweet 3's id
-#  last_seen.txt = 1587982753596731392
-#
+#  
+#  last_seen.txt NEEDS to be changed the latest mention at every restart
 #  
 ####################################################################################
 
 
 
-import tweepy
+
 import time
 import requests
 import json
+import tweepy
 
 #naive bayes model
 import pandas as pd
@@ -84,57 +82,38 @@ def store_last_seen(FILE_NAME, last_seen_id):
 #reply function                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
 def reply():
 
-    counter = 0
     for tweet in reversed(tweets):
         #only replies to tweets with the #ultimatebot in it
-        if '#ais' in tweet.full_text.lower():
+        if '#aisaim' in tweet.full_text.lower():
             
-            convo_id = analyze_tweet(tweet.id)
-            #need to change this to the tweet of the conversation ID
+            convo_id = analyze_tweet(tweet.id) 
+          
             url = 'https://api.twitter.com/2/tweets/{}'.format(convo_id)
-            
             tweetNLP = getConvoTweet(url)
-            #print(tweetNLP)
             
-            #####
-
             df_new = pd.DataFrame([tweetNLP], columns=['text'])
             X = df_new['text']
-          
-            
-            #print('X is' + str(type(X)))
-            
-            #put the tweet into panda data frame
             A = cv.transform(X)
-            #print("A is " + str(type(A)))
-            
             prediction = clf.predict(A)
-            #print(B)
+            print(tweetNLP)
+            print(prediction)
+
             #[0] is bot [1] is human
             print(f'The tweet predicted is: {tweetNLP} ')
             
-
+            #human
             if (str(prediction) == '[1]'):
-                result = 'human'
+                
+                api.update_status("@" + tweet.user.screen_name + " Our model predicts that this is a: human", tweet.id)
             
+            #bot
             if (str(prediction) == '[0]'):
-                result = 'bot'
-            #send the reply (reply message, tweet id)
-            
-            
-            api.update_status("@" + tweet.user.screen_name + " This tweet was posted by a " + result, tweet.id)
-            
-
+                
+                api.report_spam(screen_name = tweet.user.screen_name, perform_block = False)
+                api.update_status("@" + tweet.user.screen_name + " Our model predicts that this is a: bot and has been reported", tweet.id)
+          
             #store the new tweet id
             store_last_seen(FILE_NAME, tweet.id)
-
-
-
-def create_url():
-    
-    id = read_last_seen(FILE_NAME)
-    url = 'https://api.twitter.com/2/tweets?ids={}&tweet.fields=conversation_id'.format(id)
-    return url
 
 def bearer_oauth(r):
     """
@@ -160,7 +139,6 @@ def getConvoTweet(convoUrl):
     response = connect_to_endpoint(convoUrl)
     x = json.loads(json.dumps(response))
     y = x.get('data')
-   
     return(y.get('text'))
 
 #use this function to get the tweet to run through the model
@@ -172,17 +150,12 @@ def analyze_tweet(tweet_id):
     y = x.get('data')
     return (y[0]['conversation_id'])
 
-
 #main
 while True:
     #calls on all timeline mentions (when someone @'s the bot)
     tweets = api.mentions_timeline(read_last_seen(FILE_NAME), tweet_mode='extended')
-
-    #the reply function
-    
-    #print(convo_id)
     reply()
     
     #wait timer b4 next reply
-    time.sleep(15)
+    time.sleep(7)
 
